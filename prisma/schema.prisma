@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Client {
+  id       Int       @id @default(autoincrement())
+  name     String    @db.VarChar(255)
+  email    String?   @unique @db.VarChar(255)
+  phone    String?   @db.VarChar(50)
+  address  String?   @db.Text
+  invoices Invoice[]
+  quotes   Quote[]
+}
+
+model Invoice {
+  id          Int           @id @default(autoincrement())
+  clientId    Int
+  number      String        @db.VarChar(100)
+  date        DateTime      @default(now())
+  dueDate     DateTime
+  status      InvoiceStatus
+  totalAmount Float
+  items       InvoiceItem[]
+  client      Client        @relation(fields: [clientId], references: [id])
+
+  @@index([clientId])
+}
+
+model Quote {
+  id          Int         @id @default(autoincrement())
+  clientId    Int
+  number      String      @db.VarChar(100)
+  date        DateTime    @default(now())
+  status      QuoteStatus
+  totalAmount Float
+  items       QuoteItem[]
+  client      Client      @relation(fields: [clientId], references: [id])
+
+  @@index([clientId])
+}
+
+model InvoiceItem {
+  id        Int     @id @default(autoincrement())
+  invoiceId Int
+  name      String  @db.VarChar(255)
+  quantity  Int
+  price     Float
+  total     Float
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+}
+
+model QuoteItem {
+  id       Int    @id @default(autoincrement())
+  quoteId  Int
+  name     String @db.VarChar(255)
+  quantity Int
+  price    Float
+  total    Float
+  quote    Quote  @relation(fields: [quoteId], references: [id])
+
+  @@index([quoteId])
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  CANCELLED
+  OVERDUE
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+}
