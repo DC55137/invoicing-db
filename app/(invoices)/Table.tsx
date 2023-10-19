@@ -1,183 +1,155 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { useLayoutEffect, useRef, useState, RefObject } from "react";
-import { format } from "date-fns";
+import React from "react";
+import { Invoice } from "@/types/types";
 
-// Define types for the invoice and the props.
-export type Invoice = {
-  id: string;
-  client: string;
-  createdAt: Date;
-  dueDate: Date;
-  totalAmount: number;
-  items?: {
-    name: string;
-    description: string;
-    quantity: number;
-    price: number;
-  }[];
-  status: "draft" | "sent" | "paid" | "cancelled" | "overdue";
-};
+import useTable, { getComparator, emptyRows } from "@/hooks/useTable";
+import TableHead from "./_components/TableHead";
+import TableRow from "./_components/TableRow";
+import Search from "./_components/Search";
+import Pagination from "./_components/Pagination";
+import Tabs from "./_components/Tabs";
+import TableEmptyRows from "./_components/TableEmptyRows";
 
-type TableProps = {
-  invoices: Invoice[];
-};
+export default function Table({ invoices }: { invoices: Invoice[] }) {
+  const {
+    page,
+    order,
+    orderBy,
+    rowsPerPage,
+    setPage,
+    filterName,
+    //
+    selected,
+    setSelected,
+    onSelectRow,
+    onSelectAllRows,
+    //
+    onChangeRowsPerPage,
+    filterStatus,
+    onChangeFilterStatus,
+    handleFilterName,
+    applySortFilter,
+  } = useTable({ defaultOrderBy: "client" });
 
-const Table: React.FC<TableProps> = ({ invoices }) => {
-  const checkbox: RefObject<HTMLInputElement> = useRef(null);
-  const [checked, setChecked] = useState(false);
-  const [indeterminate, setIndeterminate] = useState(false);
-  const [selectedPeople, setSelectedPeople] = useState<Invoice[]>([]);
+  const dataFiltered = applySortFilter({
+    invoices,
+    comparator: getComparator(order, orderBy),
+    filterName,
+    filterStatus,
+  });
 
-  useLayoutEffect(() => {
-    const isIndeterminate =
-      selectedPeople.length > 0 && selectedPeople.length < invoices.length;
-    setChecked(selectedPeople.length === invoices.length);
-    setIndeterminate(isIndeterminate);
-    if (checkbox.current) {
-      checkbox.current.indeterminate = isIndeterminate;
-    }
-  }, [selectedPeople, invoices]);
+  // const handleUpdateRow = async (location) => {
+  //   // prettier-ignore
 
-  function toggleAll() {
-    setSelectedPeople(checked || indeterminate ? [] : invoices);
-    setChecked(!checked && !indeterminate);
-    setIndeterminate(false);
-  }
+  //   if (window.confirm(`are you sure you want to move to ${location}?`)) {
+  //     // eslint-disable-line no-alert
+  //     const sendRows = invoices.filter((row) => selected.includes(row.id))
+  //     setSelected([])
+  //     if (page * rowsPerPage >= dataFiltered.length) {
+  //       setPage(0)
+  //     }
+  //     try {
+  //       const res = await fetch('/api/updateRows', {
+  //         method: 'POST',
+  //         headers: { 'Content-Type': 'application/json' },
+  //         body: JSON.stringify({ selected, location }),
+  //       })
+
+  //       const data = await res.json()
+  //       if (data.success) {
+  //         toast(data.message)
+  //       } else {
+  //         toast(data.message)
+  //         console.error(data.message)
+  //       }
+  //     } catch (err) {
+  //       console.error(err)
+  //     }
+  //   }
+  // };
+  // const handleUpdateRowAction = async (action) => {
+  //   // prettier-ignore
+  //   if (window.confirm(`are you sure you want to change action?`)) {// eslint-disable-line no-alert
+  //     const sendRows = invoices.filter((row) => selected.includes(row.id));
+  //     setSelected([]);
+  //     if (page * rowsPerPage >= dataFiltered.length) {
+  //       setPage(0);
+  //     }
+  //     try {
+  //       const res = await fetch('/api/updateRowsAction', {
+  //         method: 'POST',
+  //         headers: { 'Content-Type': 'application/json' },
+  //         body: JSON.stringify({ selected, action }),
+  //       });
+
+  //       const data = await res.json();
+  //       if (data.success) {
+  //         toast(data.message);
+  //       } else {
+  //         toast(data.message)
+  //         console.error(data.message);
+  //       }
+  //     } catch (err) {
+  //       console.error(err);
+  //     }
+  //   }
+  // };
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8">
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h1 className="text-base font-semibold leading-6 text-gray-900">
-            Users
-          </h1>
-          <p className="mt-2 text-sm text-gray-700">
-            A list of all the users in your account including their name, title,
-            client and role.
-          </p>
-        </div>
-        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-          <button
-            type="button"
-            className="block rounded-md bg-indigo-600 px-3 py-1.5 text-center text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-          >
-            Add user
-          </button>
-        </div>
-      </div>
-      <div className="mt-8 flow-root">
-        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-            <table className="min-w-full table-fixed divide-y divide-gray-300">
-              <thead>
-                <tr>
-                  <th scope="col" className="relative px-7 sm:w-12 sm:px-6">
-                    <input
-                      type="checkbox"
-                      className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                      ref={checkbox}
-                      checked={checked}
-                      onChange={toggleAll}
+    <>
+      <div className="flex flex-col">
+        <div className="overflow-x-auto rounded-t-lg border-2 border-b-0 border-slate-700 md:overflow-visible ">
+          {!filterName && (
+            <Tabs
+              invoices={invoices}
+              filterStatus={filterStatus}
+              setFilterStatus={onChangeFilterStatus}
+            />
+          )}
+          <Search
+            filterName={filterName}
+            onFilterName={handleFilterName}
+            setSelected={setSelected}
+          />
+          <div className="relative block min-w-full align-middle ">
+            <table className="relative min-w-full ">
+              <TableHead
+                rowCount={dataFiltered.length}
+                numSelected={selected.length}
+                onSelectAllRows={(checked) =>
+                  onSelectAllRows(
+                    checked,
+                    invoices.map((row) => row.id)
+                  )
+                }
+              />
+              <tbody className="">
+                {dataFiltered
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((row: Invoice) => (
+                    <TableRow
+                      key={row.id}
+                      row={row}
+                      selected={selected.includes(row.id)}
+                      onSelectRow={() => onSelectRow(row.id)}
                     />
-                  </th>
-                  <th
-                    scope="col"
-                    className="min-w-[12rem] py-3.5 pr-3 text-left text-sm font-semibold text-gray-900"
-                  >
-                    Name
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                  >
-                    Title
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                  >
-                    Client
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                  >
-                    Role
-                  </th>
-                  <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-3">
-                    <span className="sr-only">Edit</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {invoices.map((invoice) => (
-                  <tr
-                    key={invoice.client}
-                    className={
-                      selectedPeople.includes(invoice)
-                        ? "bg-gray-50"
-                        : undefined
-                    }
-                  >
-                    <td className="relative px-7 sm:w-12 sm:px-6">
-                      {selectedPeople.includes(invoice) && (
-                        <div className="absolute inset-y-0 left-0 w-0.5 bg-indigo-600" />
-                      )}
-                      <input
-                        type="checkbox"
-                        className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                        value={invoice.client}
-                        checked={selectedPeople.includes(invoice)}
-                        onChange={(e) =>
-                          setSelectedPeople(
-                            e.target.checked
-                              ? [...selectedPeople, invoice]
-                              : selectedPeople.filter((p) => p !== invoice)
-                          )
-                        }
-                      />
-                    </td>
-                    <td
-                      className={cn(
-                        "whitespace-nowrap py-4 pr-3 text-sm font-medium",
-                        selectedPeople.includes(invoice)
-                          ? "text-indigo-600"
-                          : "text-gray-900"
-                      )}
-                    >
-                      {invoice.client}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      {format(invoice.createdAt, "MM/dd/yyyy")}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      {format(invoice.dueDate, "MM/dd/yyyy")}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      {invoice.totalAmount.toLocaleString("en-US", {
-                        style: "currency",
-                        currency: "USD",
-                      })}
-                    </td>
-                    <td className="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-3">
-                      <a
-                        href="#"
-                        className="text-indigo-600 hover:text-indigo-900"
-                      >
-                        Edit<span className="sr-only">, {invoice.id}</span>
-                      </a>
-                    </td>
-                  </tr>
-                ))}
+                  ))}
+                <TableEmptyRows
+                  emptyRows={emptyRows(page, rowsPerPage, dataFiltered.length)}
+                />
               </tbody>
             </table>
           </div>
         </div>
       </div>
-    </div>
+      <Pagination
+        setPage={setPage}
+        page={page}
+        invoices={dataFiltered}
+        rowsPerPage={rowsPerPage}
+        onChangeRowsPerPage={onChangeRowsPerPage}
+      />
+    </>
   );
-};
-
-export default Table;
+}
